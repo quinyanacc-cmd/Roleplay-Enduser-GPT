@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="color-scheme" content="light">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Roleplay">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="product.css">
+  <meta name="description" content="Gestalte deinen Alltag mit eigenen Rollen, Routinen und einer täglichen Reflexion. Deine Einträge bleiben auf deinem Gerät.">
+  <title>Roleplay</title>
+</head>
+<body>
+  <div class="app-shell">
+    <div id="productToolbar" class="product-toolbar"><span id="saveStatus" role="status" aria-live="polite">Lokal auf deinem Gerät</span><div><button id="openHelp" type="button" aria-label="Hilfe öffnen">Hilfe</button><button id="openSettings" type="button">Rollen & Einstellungen</button></div></div>
+    <div id="productMessage" class="product-message" role="status" hidden></div>
+    <div id="storageError" class="storage-error" role="alert" hidden><strong>Deine Änderung braucht Aufmerksamkeit</strong><p id="storageErrorText"></p><button id="emergencyBackup" type="button">Notsicherung speichern</button><button id="recoveryImport" type="button">Gültige Sicherung importieren</button><input id="recoveryFile" type="file" accept=".json,application/json" hidden><button id="reloadApp" type="button">Neu laden</button></div>
+    <div id="updateBanner" class="product-message update-banner" role="status" hidden>Eine neue Version ist bereit. <button id="installUpdate" type="button">Speichern & aktualisieren</button></div>
+    <h1 id="pageTitle" class="sr-only">Tagesreflexion</h1>
+    <header class="app-header" id="appHeader">
+      <div class="date-nav" id="dateNavigation">
+        <button id="prevDay" class="icon-button" type="button" aria-label="Vorheriger Tag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button>
+        <button id="dateButton" class="date-button" type="button" aria-haspopup="dialog" aria-label="Datum auswählen und Kalender öffnen"></button>
+        <button id="nextDay" class="icon-button" type="button" aria-label="Nächster Tag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button>
+      </div>
+
+      <div class="header-hero">
+        <label class="header-role-selector" id="rolePickerWrap">
+          <span class="header-role-label">Aktive Rolle</span>
+          <span class="header-role-value" aria-hidden="true">
+            <span id="roleHeroIcon" class="header-role-icon">🎓</span>
+            <strong id="roleHeroName">Absolvent</strong>
+            <svg viewBox="0 0 20 20"><path d="m6 8 4 4 4-4"/></svg>
+          </span>
+          <select id="dayRole" class="header-role-input" aria-label="Aktive Tagesrolle wechseln"></select>
+        </label>
+        <p class="header-impulse" aria-live="polite"><span id="mascotQuote">Arabisch Schritt für Schritt erschließen … Inshallah</span></p>
+        <img id="roleMascotImage" class="role-mascot-image" src="mascot-ich.jpeg" width="1254" height="1254" decoding="async" fetchpriority="high" alt="" aria-hidden="true">
+      </div>
+      <p id="roleTagline" class="sr-only"></p>
+    </header>
+
+    <main>
+      <section id="reviewPage" class="app-page active" aria-label="Tagesreview">
+        <section class="card state-overview-card" aria-labelledby="stateOverviewTitle">
+          <h2 id="stateOverviewTitle">Zustand &amp; Rollenmodus</h2>
+          <div id="checkinSlots" class="checkin-slots" aria-label="Fünf Tages-Check-ins"></div>
+          <div id="currentStateSummary" class="current-state-summary empty-state-summary"></div>
+          <details class="state-history-details">
+            <summary><strong>Verlauf &amp; Details</strong></summary>
+            <div id="stateTimeline" class="state-timeline"></div>
+          </details>
+        </section>
+
+        <section class="card religion-content">
+          <h2>Islam</h2>
+          <div id="prayerList" class="prayer-strip"></div>
+          <details class="sunnah-prayer-details">
+            <summary><span>Sunnah- und freiwillige Gebete</span><small id="sunnahPrayerSummary">Noch nichts erfasst</small></summary>
+            <div id="sunnahPrayerList" class="sunnah-prayer-grid"></div>
+          </details>
+          <div class="ramadan-box">
+            <div>
+              <span class="subheading">Fastentage</span>
+              <strong id="ramadanDisplay">–29 Tage offen</strong>
+              <small class="carry-hint">Der Stand wird beim nächsten Tag automatisch übernommen.</small>
+            </div>
+            <div class="ramadan-controls">
+              <input id="ramadanDays" type="number" inputmode="numeric" value="-29" aria-label="Offene Fastentage">
+              <button id="ramadanComplete" class="small-button" type="button">Fastentag geschafft</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="section-title-row">
+            <h2>Aktivitäten</h2>
+            <button id="addActivity" class="small-button plus-button plus-only" type="button" aria-label="Aktivität hinzufügen"><span class="gradient-plus">+</span></button>
+          </div>
+          <div id="activityList" class="stack activity-list"></div>
+        </section>
+
+        <section class="card routine-review-section">
+          <div class="section-title-row">
+            <h2>Routinen</h2>
+            <button id="openRoutines" class="text-button" type="button">Öffnen</button>
+          </div>
+          <div class="routine-review-grid">
+            <article class="routine-review-card routine-review-image morning">
+              <button class="routine-review-open" type="button" data-review-open-routine="morning" aria-label="Morgenroutine öffnen">
+                <span class="routine-review-copy"><strong>Morgenroutine</strong><small>Heute Morgen</small></span>
+              </button>
+              <button class="routine-cycle-button" type="button" data-routine-cycle="morning" aria-label="Status Morgenroutine ändern"></button>
+            </article>
+            <article class="routine-review-card routine-review-image evening">
+              <button class="routine-review-open" type="button" data-review-open-routine="evening" aria-label="Abendroutine öffnen">
+                <span class="routine-review-copy"><strong>Abendroutine</strong><small>Heute Abend</small></span>
+              </button>
+              <button class="routine-cycle-button" type="button" data-routine-cycle="evening" aria-label="Status Abendroutine ändern"></button>
+            </article>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Vitalität</h2>
+
+          <div class="meal-list">
+              <div class="meal-entry" data-meal-entry="breakfast">
+                <strong>Frühstück</strong>
+                <select id="breakfastCategory" class="meal-category-select" aria-label="Kategorie Frühstück"></select>
+                <input id="breakfast" placeholder="Optional: Was war es konkret?">
+              </div>
+              <div class="meal-entry" data-meal-entry="lunch">
+                <strong>Mittagessen</strong>
+                <select id="lunchCategory" class="meal-category-select" aria-label="Kategorie Mittagessen"></select>
+                <input id="lunch" placeholder="Optional: Was war es konkret?">
+              </div>
+              <div class="meal-entry" data-meal-entry="dinner">
+                <strong>Abendessen</strong>
+                <select id="dinnerCategory" class="meal-category-select" aria-label="Kategorie Abendessen"></select>
+                <input id="dinner" placeholder="Optional: Was war es konkret?">
+              </div>
+              <div class="meal-entry" data-meal-entry="snack">
+                <strong>Snacks</strong>
+                <select id="snackCategory" class="meal-category-select" aria-label="Kategorie Snacks"></select>
+                <input id="snack" placeholder="Optional: Was war es konkret?">
+              </div>
+          </div>
+
+          <div class="vitality-metrics">
+            <div class="field-group">
+              <label for="water">Getrunken</label>
+              <input id="water" type="hidden" value="0">
+              <div class="water-tracker" id="waterTracker">
+                <button id="waterMinus" class="water-step-button" type="button" aria-label="0,5 Liter abziehen">−</button>
+                <div class="water-display-wrap">
+                  <div class="water-droplets" id="waterDroplets"></div>
+                  <strong id="waterTotalDisplay">0,0 Liter</strong>
+                </div>
+                <button id="waterPlus" class="water-step-button gradient-action" type="button" aria-label="0,5 Liter hinzufügen">+</button>
+              </div>
+            </div>
+            <div class="field-group">
+              <label for="steps">Schritte</label>
+              <input id="steps" type="number" inputmode="numeric" min="0" step="100" placeholder="z. B. 5000">
+            </div>
+          </div>
+        </section>
+
+        <section class="card mindfulness-card">
+          <h2>Dankbarkeit</h2>
+          <div class="reflection-stack">
+            <div class="field-group reflection-field">
+              <label class="sr-only" for="gratitude1">Dankbarkeit</label>
+              <textarea id="gratitude1" rows="2"></textarea>
+            </div>
+            <div class="field-group reflection-field">
+              <label class="sr-only" for="gratitude2">Dankbarkeit</label>
+              <textarea id="gratitude2" rows="2"></textarea>
+            </div>
+            <div class="field-group reflection-field religion-content">
+              <label for="allahName">Welcher Name Allahs begleitet mich heute?</label>
+              <select id="allahName" aria-label="Name Allahs auswählen"></select>
+            </div>
+          </div>
+        </section>
+
+        <section class="card notes-card">
+          <h2>Tagesnotiz</h2>
+          <textarea id="notes" rows="14" placeholder="Gedanken, Erkenntnisse, Ereignisse oder ein längerer Tagebucheintrag …"></textarea>
+        </section>
+
+        <button id="saveButton" class="primary-button" type="button">Tagesreview speichern</button>
+
+        <details class="card stats-card week-course-card" open>
+          <summary class="lean-card-summary week-course-summary">
+            <h2>Wochenrückblick</h2>
+            <span id="weekLabel" class="week-label"></span>
+          </summary>
+          <div class="rp-segmented week-mode-switch" id="weekModeSwitch" role="group" aria-label="Zeitraum des Rückblicks">
+            <button type="button" class="rp-segment is-selected" data-week-mode="calendar" aria-pressed="true">Kalenderwoche</button>
+            <button type="button" class="rp-segment" data-week-mode="sliding" aria-pressed="false">Gleitende 7 Tage</button>
+          </div>
+          <div class="week-nav">
+            <button id="weekBack" class="icon-button" type="button" aria-label="Zurück">‹</button>
+            <span id="weekRange" class="week-nav-hint"></span>
+            <button id="weekForward" class="icon-button" type="button" aria-label="Vor">›</button>
+          </div>
+          <div id="statsSwipe" class="stats-swipe">
+            <div id="statsGrid" class="stats-grid"></div>
+          </div>
+        </details>
+
+        <section class="card">
+          <h2>Export & Sicherung</h2>
+          <p id="backupReminder" class="backup-reminder" hidden>Bewahre deine Einträge auch als Datei auf. <button id="backupReminderButton" type="button">Jetzt sichern</button></p>
+          <div class="export-buttons">
+            <button id="exportBackup" class="small-button export-button" type="button">Backup speichern</button>
+            <button id="importBackupButton" class="small-button export-button" type="button">Backup importieren</button>
+            <button id="exportCsv" class="small-button export-button" type="button">Excel / CSV exportieren</button>
+            <input id="importBackupInput" type="file" accept=".json,application/json" hidden>
+          </div>
+          <p id="backupStatus" class="backup-status">Noch kein Backup in dieser Sitzung erstellt.</p>
+        </section>
+
+        <p class="privacy-note">Alle Einträge werden ausschließlich lokal in diesem Browser gespeichert.<br><span id="appVersionLabel"></span></p>
+      </section>
+
+      <section id="routinesPage" class="app-page" aria-label="Routinen">
+        <div id="routineOverview" class="routine-overview">
+          <div id="routineCards" class="routine-cards"></div>
+          <button id="addRoutine" class="bottom-add-routine" type="button"><span class="gradient-plus">+</span><span>Routine hinzufügen</span></button>
+        </div>
+
+        <div id="routineDetail" class="routine-detail" hidden>
+          <button id="backToRoutineOverview" class="back-button icon-only" type="button" aria-label="Zur Übersicht"></button>
+          <div class="routine-detail-head">
+            <div>
+              <p id="routineDetailEyebrow" class="eyebrow"></p>
+              <h2 id="routineDetailTitle"></h2>
+              <p id="routineDetailMeta" class="section-hint"></p>
+              <button id="editRoutineMeta" class="text-button" type="button">Kopfbild &amp; Titel ändern</button>
+            </div>
+            <button id="startRoutineDetail" class="round-play-button" type="button" aria-label="Routine starten">▶</button>
+          </div>
+          <div id="routineDetailProgress" class="routine-detail-progress"></div>
+
+          <div id="routineItemList" class="routine-item-list"></div>
+          <button id="addRoutineItem" class="secondary-wide-button plus-button wide" type="button"><span>Schritt hinzufügen</span></button>
+        </div>
+      </section>
+
+      <section id="analysisPage" class="app-page" aria-label="Auswertung">
+        <section class="card role-presence-card" aria-labelledby="roleSplitTitle">
+          <div class="section-title-row">
+            <h2 id="roleSplitTitle">Rollenpräsenz</h2>
+            <button id="roleSplitInfo" class="icon-button info-button" type="button" aria-haspopup="dialog" aria-label="Erklärung zur Rollenpräsenz">i</button>
+          </div>
+          <div class="rp-segmented role-split-switch" id="roleSplitRange" role="group" aria-label="Zeitraum der Rollenpräsenz">
+            <button type="button" class="rp-segment is-selected" data-role-range="week" aria-pressed="true">Woche</button>
+            <button type="button" class="rp-segment" data-role-range="month" aria-pressed="false">Monat</button>
+          </div>
+          <p id="roleSplitSummary" class="role-presence-period"></p>
+          <div id="roleSplitMetrics" class="role-presence-metrics"></div>
+          <div id="roleSplitDistribution" class="role-presence-distribution"></div>
+          <div id="roleSplitList" class="role-split-list"></div>
+          <div id="roleSplitImpulses" class="month-impulses"></div>
+        </section>
+
+        <section class="card" aria-labelledby="monthReviewTitle">
+          <div class="section-title-row">
+            <h2 id="monthReviewTitle">Monatsrückblick</h2>
+          </div>
+          <div class="week-nav">
+            <button id="monthBack" class="icon-button" type="button" aria-label="Vorheriger Monat">‹</button>
+            <span id="monthLabel" class="week-nav-hint"></span>
+            <button id="monthForward" class="icon-button" type="button" aria-label="Nächster Monat">›</button>
+          </div>
+          <div id="monthSummary" class="month-summary"></div>
+          <div id="monthImpulses" class="month-impulses"></div>
+          <div class="export-buttons">
+            <button id="exportMonthReport" class="small-button export-button" type="button">Monatsreport exportieren</button>
+          </div>
+        </section>
+      </section>
+
+      <section id="streaksPage" class="app-page" aria-label="Streaks">
+        <div id="streakList" class="stack streak-list streaks-page-list"></div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Hauptnavigation">
+      <button class="nav-button active" data-page="review" type="button" aria-label="Tagesreflexion" title="Tagesreflexion">
+        <span class="nav-symbol" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4.6" y="3.4" width="14.8" height="17.2" rx="3.4"></rect><line x1="8.4" y1="8.6" x2="15.6" y2="8.6"></line><line x1="8.4" y1="12" x2="15.6" y2="12"></line><line x1="8.4" y1="15.4" x2="13" y2="15.4"></line></svg></span>
+      </button>
+      <button class="nav-button" data-page="routines" type="button" aria-label="Routinen" title="Routinen">
+        <span class="nav-symbol" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 15.4a5 5 0 0 1 10 0"></path><line x1="3.4" y1="15.4" x2="20.6" y2="15.4"></line><line x1="12" y1="3.6" x2="12" y2="6.2"></line><line x1="5.4" y1="6.3" x2="7.2" y2="8.1"></line><line x1="18.6" y1="6.3" x2="16.8" y2="8.1"></line><line x1="6.4" y1="19.4" x2="17.6" y2="19.4"></line></svg></span>
+      </button>
+      <button class="nav-button" data-page="analysis" type="button" aria-label="Auswertung" title="Auswertung">
+        <span class="nav-symbol" aria-hidden="true"><svg viewBox="0 0 24 24"><line x1="4.2" y1="19.4" x2="19.8" y2="19.4"></line><line x1="8" y1="19.4" x2="8" y2="12.6"></line><line x1="12" y1="19.4" x2="12" y2="7.4"></line><line x1="16" y1="19.4" x2="16" y2="15"></line></svg></span>
+      </button>
+      <button class="nav-button" data-page="streaks" type="button" aria-label="Streaks" title="Streaks">
+        <span class="nav-symbol" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21.2a5.9 5.9 0 0 0 5.9-5.9c0-4-3-6.6-5.9-9.6-2.9 3-5.9 5.6-5.9 9.6A5.9 5.9 0 0 0 12 21.2Z"></path><path d="M12 21.2a2.6 2.6 0 0 0 2.6-2.6c0-1.7-1.3-2.8-2.6-4.2-1.3 1.4-2.6 2.5-2.6 4.2A2.6 2.6 0 0 0 12 21.2Z"></path></svg></span>
+      </button>
+    </nav>
+  </div>
+
+  <dialog id="stateCheckinDialog" class="form-dialog state-checkin-dialog">
+    <form id="stateCheckinForm">
+      <h3 id="stateDialogTitle">Check-in</h3>
+      <div id="stateSlotDisplay" hidden></div>
+      <select id="stateSlot" hidden aria-hidden="true" tabindex="-1"></select>
+      <input id="stateTime" type="hidden">
+
+      <section id="sleepCheckinSection" class="checkin-form-section sleep-checkin-section" hidden>
+        <div class="field-group">
+          <label for="stateSleepQuality">Schlafqualität</label>
+          <select id="stateSleepQuality"></select>
+        </div>
+        <div class="field-group">
+          <label for="stateDreamCategory">Traumkategorie</label>
+          <select id="stateDreamCategory"></select>
+        </div>
+        <div class="field-group">
+          <label for="stateDreamNote">Traumnotiz</label>
+          <textarea id="stateDreamNote" rows="3" placeholder="Optional"></textarea>
+        </div>
+      </section>
+
+      <section id="dayCheckinSection" class="checkin-form-section day-checkin-section">
+        <div class="field-group state-energy-field compact-energy-field">
+          <div class="label-value-row">
+            <label for="stateEnergy">Energie</label>
+            <strong id="stateEnergyValue">60 %</strong>
+          </div>
+          <input id="stateEnergy" type="range" min="0" max="100" step="5" value="60">
+          <div class="state-range-legend"><small>niedrig</small><small>hoch</small></div>
+          <small class="state-range-meaning" id="stateEnergyMeaning"></small>
+        </div>
+        <div class="field-group state-mood-field compact-mood-field">
+          <div class="label-value-row">
+            <label for="stateMood">Laune</label>
+            <strong id="stateMoodValue">60 %</strong>
+          </div>
+          <input id="stateMood" type="range" min="0" max="100" step="5" value="60">
+          <div class="state-range-legend"><small>gedrückt</small><small>sehr gut</small></div>
+          <small class="state-range-meaning" id="stateMoodMeaning"></small>
+        </div>
+        <div class="field-group state-taqwa-field compact-taqwa-field religion-content">
+          <div class="label-value-row">
+            <label for="stateTaqwa">Gottesfurcht</label>
+            <strong id="stateTaqwaValue">60 %</strong>
+          </div>
+          <input id="stateTaqwa" type="range" min="0" max="100" step="5" value="60">
+          <div class="state-range-legend"><small>fern</small><small>nah</small></div>
+          <small class="state-range-meaning" id="stateTaqwaMeaning"></small>
+        </div>
+
+
+        
+      </section>
+
+      <div id="stateFrameworkPreviewText" class="state-framework-preview-text"></div>
+
+      <div class="dialog-actions">
+        <button id="resetStateCheckin" type="button" class="ghost-button danger" hidden>Zurücksetzen</button>
+        <button id="cancelStateCheckin" type="button" class="secondary-button">Abbrechen</button>
+        <button type="submit" class="primary-button compact">Speichern</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="calendarDialog" class="calendar-dialog">
+    <div class="calendar-header">
+      <button id="calendarPrevMonth" class="icon-button" type="button" aria-label="Vorheriger Monat"></button>
+      <strong id="calendarMonthLabel"></strong>
+      <button id="calendarNextMonth" class="icon-button" type="button" aria-label="Nächster Monat"></button>
+    </div>
+    <div class="calendar-weekdays" aria-hidden="true">
+      <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span>
+    </div>
+    <div id="calendarGrid" class="calendar-grid"></div>
+    <div class="calendar-footer">
+      <button id="calendarToday" class="secondary-button" type="button">Heute</button>
+      <button id="calendarClose" class="primary-button compact" type="button">Schließen</button>
+    </div>
+  </dialog>
+  <dialog id="prayerDialog" class="form-dialog prayer-dialog">
+    <h3 id="prayerDialogTitle">Gebet</h3>
+    <div id="prayerStateOptions" class="prayer-state-options"></div>
+    <div class="dialog-actions">
+      <button id="prayerDialogClose" type="button" class="secondary-button">Schließen</button>
+    </div>
+  </dialog>
+
+  <dialog id="activityDialog" class="form-dialog">
+    <form id="activityForm">
+      <h3>Aktivität hinzufügen</h3>
+      <label for="activityTemplate">Aktivitätsvorlage</label>
+      <select id="activityTemplate"></select>
+      <label for="activityTitle">Aktivität</label>
+      <input id="activityTitle" required placeholder="Zum Beispiel: Lesen oder Bewegung">
+      <label for="activityRole">Rolle</label>
+      <select id="activityRole"></select>
+      <p id="activityWeightHint" class="activity-weight-hint"></p>
+      <div class="dialog-actions">
+        <button id="cancelActivity" type="button" class="secondary-button">Abbrechen</button>
+        <button id="confirmActivity" type="submit" class="primary-button compact">Hinzufügen</button>
+      </div>
+    </form>
+  </dialog>
+
+
+  <dialog id="routineDialog" class="form-dialog">
+    <form id="routineDialogForm">
+      <h3>Routine hinzufügen</h3>
+      <label for="routineTitle">Titel</label>
+      <input id="routineTitle" required placeholder="z. B. Fokusroutine">
+      <label for="routineDescription">Kurzbeschreibung</label>
+      <input id="routineDescription" placeholder="Wofür ist diese Routine gedacht?">
+      <label for="routineTheme">Design-Stimmung</label>
+      <select id="routineTheme">
+        <option value="morning">Sonnenaufgang</option>
+        <option value="evening">Nachthimmel</option>
+        <option value="tag">Bergsee am Tag</option>
+        <option value="daemmerung">Dämmerung</option>
+        <option value="zuhause">Zuhause</option>
+        <option value="focus">Ohne Bild</option>
+      </select>
+      <p class="routine-theme-preview" id="routineThemePreview" aria-hidden="true"></p>
+      <div class="dialog-actions">
+        <button id="deleteRoutine" type="button" class="ghost-button danger" hidden>Routine löschen</button>
+        <button id="cancelRoutine" type="button" class="secondary-button">Abbrechen</button>
+        <button type="submit" class="primary-button compact" id="routineDialogSubmit">Erstellen</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="routineItemDialog" class="form-dialog step-dialog">
+    <form id="routineItemForm">
+      <h3 id="routineItemDialogTitle">Schritt hinzufügen</h3>
+      <div class="step-dialog-body">
+        <div class="emoji-title-grid">
+          <label for="routineItemEmoji">Emoji</label>
+          <label for="routineItemTitle">Bezeichnung</label>
+          <input id="routineItemEmoji" maxlength="8" autocomplete="off" placeholder="🙂" required
+                 aria-describedby="routineItemEmojiError">
+          <input id="routineItemTitle" required placeholder="z. B. Kerze">
+        </div>
+        <p id="routineItemEmojiError" class="inline-error" role="alert" hidden>Bitte ein Emoji eintragen.</p>
+        <div class="field-group">
+          <label for="routineItemMinutes">Dauer</label>
+          <select id="routineItemMinutes"></select>
+        </div>
+        <div class="field-group">
+          <label for="routineItemContext">Kontext / Erinnerung</label>
+          <textarea id="routineItemContext" rows="3" placeholder="Optionaler Hinweis, Dua, Gedanke oder konkrete Anweisung …"></textarea>
+        </div>
+      </div>
+      <div class="dialog-actions step-dialog-actions">
+        <button id="deleteRoutineItem" type="button" class="ghost-button danger" hidden>Löschen</button>
+        <button id="cancelRoutineItem" type="button" class="secondary-button">Abbrechen</button>
+        <button type="submit" class="primary-button compact">Speichern</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="routineSessionDialog" class="routine-session-dialog">
+    <div class="session-topbar">
+      <button id="closeRoutineSession" class="session-icon-button" type="button" aria-label="Routine schließen">×</button>
+      <span id="sessionRoutineName" class="session-routine-name"></span>
+    </div>
+    <div class="session-content">
+      <p id="sessionProgress" class="session-progress"></p>
+      <h2 id="sessionItemTitle"></h2>
+      <div id="sessionTimerCircle" class="session-timer-circle">
+        <div id="sessionItemEmoji" class="session-item-emoji"></div>
+        <strong id="sessionTimer">00:00</strong>
+        <div class="session-adjust">
+          <button id="sessionMinus" type="button">− 1m</button>
+          <button id="sessionPlus" type="button">+ 1m</button>
+        </div>
+      </div>
+      <div id="sessionContext" class="session-context" hidden></div>
+      <div class="session-controls">
+        <button id="sessionPause" class="session-secondary-control" type="button" aria-label="Pause">Ⅱ</button>
+        <button id="sessionComplete" class="session-complete-control" type="button" aria-label="Schritt erledigt">✓</button>
+        <button id="sessionSkip" class="session-secondary-control" type="button" aria-label="Schritt überspringen">›|</button>
+      </div>
+      <p id="sessionRemaining" class="session-remaining"></p>
+      <p id="sessionNext" class="session-next"></p>
+      <button id="sessionEditRoutine" class="session-edit-control" type="button" aria-expanded="false" aria-controls="sessionRoutineEditor">
+        <span aria-hidden="true">↕</span>
+        <span>Anpassen</span>
+      </button>
+      <section id="sessionRoutineEditor" class="session-routine-editor" hidden aria-label="Routine anpassen">
+        <div class="session-editor-sheet" role="document">
+          <div class="session-editor-grabber" aria-hidden="true"></div>
+          <div class="session-editor-head">
+            <div>
+              <strong>Routine anpassen</strong>
+              <small>Am Griff verschieben oder mit ▶ direkt zu einem Schritt wechseln.</small>
+            </div>
+          </div>
+          <div id="sessionRoutineItemList" class="session-routine-item-list"></div>
+          <button id="sessionEditorDone" class="session-editor-done" type="button">Erledigt</button>
+        </div>
+      </section>
+    </div>
+  </dialog>
+
+
+  <dialog id="roleFocusDialog" class="form-dialog">
+    <form id="roleFocusForm">
+      <h3>Rollenfokus</h3>
+      <p class="section-hint">Eine Rolle ersetzt vorübergehend die Wochenrotation.</p>
+      <label for="roleFocusRole">Rolle</label>
+      <select id="roleFocusRole"></select>
+      <label for="roleFocusDuration">Zeitraum</label>
+      <select id="roleFocusDuration">
+        <option value="today">Nur heute</option>
+        <option value="3">3 Tage</option>
+        <option value="7">7 Tage</option>
+        <option value="until">Bis zu einem Datum</option>
+        <option value="manual">Bis manuell beendet</option>
+      </select>
+      <div class="field-group" id="roleFocusDateField" hidden>
+        <label for="roleFocusDate">Enddatum</label>
+        <input id="roleFocusDate" type="date">
+      </div>
+      <p id="roleFocusStatus" class="section-hint role-focus-status"></p>
+      <div class="dialog-actions">
+        <button id="endRoleFocus" type="button" class="ghost-button danger" hidden>Fokus beenden</button>
+        <button id="cancelRoleFocus" type="button" class="secondary-button">Abbrechen</button>
+        <button type="submit" class="primary-button compact">Aktivieren</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="roleSplitInfoDialog" class="form-dialog">
+    <h3>Rollenpräsenz</h3>
+    <div id="roleSplitInfoBody" class="info-dialog-body"></div>
+    <div class="dialog-actions">
+      <button id="closeRoleSplitInfo" type="button" class="primary-button compact">Schließen</button>
+    </div>
+  </dialog>
+
+  <dialog id="roleDetailDialog" class="form-dialog">
+    <h3 id="roleDetailTitle">Rolle</h3>
+    <div id="roleDetailBody" class="role-detail-body"></div>
+    <div class="dialog-actions">
+      <button id="closeRoleDetail" type="button" class="primary-button compact">Schließen</button>
+    </div>
+  </dialog>
+
+  <dialog id="streakPrivacyDialog" class="form-dialog privacy-dialog">
+    <div class="privacy-dialog-icon" aria-hidden="true">🔥</div>
+    <h3>Geschützten Bereich öffnen?</h3>
+    <p class="privacy-dialog-copy">Diese Seite enthält persönliche Streak-Daten. Die Abfrage schützt vor versehentlichem Einblick; die lokal gespeicherten Daten selbst werden dadurch nicht verschlüsselt.</p>
+    <div class="dialog-actions privacy-actions">
+      <button id="cancelStreakAccess" type="button" class="secondary-button">Abbrechen</button>
+      <button id="confirmStreakAccess" type="button" class="primary-button compact">Öffnen</button>
+    </div>
+  </dialog>
+
+    <dialog id="onboardingDialog" class="form-dialog product-dialog onboarding-dialog" aria-labelledby="onboardingTitle">
+    <form id="onboardingForm">
+      <p class="product-eyebrow">DEIN ALLTAG. DEINE ROLLEN.</p>
+      <h2 id="onboardingTitle">Wie möchtest du starten?</h2>
+      <p>Eine Rolle beschreibt einen Lebensbereich, der dir wichtig ist. Wähle einen Startpunkt und passe ihn später an.</p>
+      <div class="template-choices">
+        <label><input type="radio" name="startTemplate" value="general" checked><span><strong>Alltag als Startpunkt</strong><small>Ich, Gesundheit, Lernen, Beruf, Zuhause und Beziehungen.</small></span></label>
+        <label><input type="radio" name="startTemplate" value="personal"><span><strong>ROLEPLAY mit Islam</strong><small>Die ursprünglichen sieben Rollen mit Gebeten und persönlichen Routinen als Vorlage.</small></span></label>
+        <label><input type="radio" name="startTemplate" value="empty"><span><strong>Mit einer eigenen Rolle</strong><small>Beginne klein und ergänze weitere Rollen, wenn du sie brauchst.</small></span></label>
+      </div>
+      <div id="firstRoleField" hidden><label>Meine erste Rolle<input id="firstRoleName" maxlength="48" placeholder="Zum Beispiel: Kreativer Mensch"></label><label>Was ist mir dabei wichtig?<textarea id="firstRoleGoal" maxlength="400" rows="2"></textarea></label></div>
+      <label class="toggle-line"><input id="setupReligion" type="checkbox"> Islamische Inhalte verwenden</label>
+      <p class="settings-hint">Deine Einträge bleiben auf diesem Gerät. Sichere sie regelmäßig als Datei, damit du sie bei einem Gerätewechsel wiederherstellen kannst.</p>
+      <p id="onboardingError" class="form-error" role="alert"></p>
+      <button type="submit" class="primary-button">Meine Rollen einrichten</button>
+      <button id="onboardingImport" type="button" class="text-button">Ich habe bereits eine Sicherung</button>
+      <input id="onboardingFile" type="file" accept=".json,application/json" hidden>
+    </form>
+  </dialog>
+
+  <dialog id="settingsDialog" class="form-dialog product-dialog" aria-labelledby="settingsTitle">
+    <div class="settings-heading"><div><p class="product-eyebrow">ROLEPLAY</p><h2 id="settingsTitle">Deine Rollen & Einstellungen</h2></div><button id="settingsClose" class="icon-button" type="button" aria-label="Einstellungen schließen">✕</button></div>
+    <div id="settingsTabs" class="settings-tabs" aria-label="Einstellungsbereiche">
+      <button type="button" data-settings-tab="roles" aria-pressed="true">Rollen</button><button type="button" data-settings-tab="daily" aria-pressed="false">Alltag</button><button type="button" data-settings-tab="data" aria-pressed="false">Daten</button><button type="button" data-settings-tab="help" aria-pressed="false">Hilfe</button>
+    </div>
+    <form id="settingsForm">
+      <section data-settings-panel="roles">
+        <p class="settings-hint">Gib deinen Rollen eigene Namen, Farben und Ziele. Archivierte Rollen bleiben in bisherigen Einträgen erhalten.</p>
+        <div id="settingsRoleList"></div><button id="addRoleButton" class="secondary-button" type="button">＋ Rolle hinzufügen</button>
+      </section>
+      <section data-settings-panel="daily" hidden>
+        <h3>Deine Woche</h3><p class="settings-hint">Diese Rolle wird für neue Tage vorgeschlagen. Im Tagesreview kannst du sie jederzeit wechseln.</p><div id="settingsWeekRoles" class="week-role-fields"></div>
+        <h3>Was möchtest du erfassen?</h3>
+        <label class="toggle-line"><input id="settingsReligion" type="checkbox"> Gebete, Fasten und Gottesfurcht anzeigen</label>
+        <label class="toggle-line"><input id="settingsStreaks" type="checkbox"> Persönliche Streaks anzeigen</label>
+        <label class="toggle-line"><input id="settingsPersonal" type="checkbox"> Ursprüngliche Aktivitätsvorlagen und persönliche Zielimpulse verwenden</label>
+        <label>Offene Fastentage beim Neustart<input id="settingsFastingDays" type="number" min="0" max="10000" step="1"></label><p class="settings-hint">Gilt, wenn noch kein vorheriger Tagesstand existiert. Deinen aktuellen Stand änderst du im Tagesreview.</p>
+        <h3>Eigene Aktivitätsvorlagen</h3><p class="settings-hint">Präsenzpunkte beschreiben die Verteilung deiner erfassten Aktivitäten. Sie bewerten weder deinen persönlichen Wert noch deine Produktivität.</p>
+        <div id="settingsTemplateList"></div>
+        <div class="new-template-fields"><label>Aktivität<input id="templateTitle" maxlength="80" placeholder="Zum Beispiel: Spazierengehen"></label><label>Rolle<select id="templateRole"></select></label><label>Präsenzpunkte<input id="templateWeight" type="number" min="0.1" max="10" step="0.1" value="1"></label></div><button id="addTemplateButton" class="secondary-button" type="button">Vorlage hinzufügen</button>
+      </section>
+      <section data-settings-panel="data" hidden>
+        <h3>Deine Daten gehören dir</h3><p>Einträge und Einstellungen werden lokal auf diesem Gerät gespeichert. Ein anderes Gerät oder eine andere App-Adresse hat einen eigenen Speicher.</p>
+        <div class="settings-actions"><button id="settingsExport" class="primary-button" type="button">Sicherung als Datei speichern</button><button id="settingsImport" class="secondary-button" type="button">Sicherung importieren</button></div><input id="settingsImportFile" type="file" accept=".json,application/json" hidden>
+        <p class="settings-hint">Backups enthalten persönliche Einträge und sind nicht verschlüsselt. Bewahre sie an einem geschützten Ort auf und prüfe nach dem Export, ob die Datei gespeichert wurde.</p>
+        <h3>Gerätewechsel</h3><ol><li>Hier eine Sicherung speichern.</li><li>Die Datei auf das neue Gerät übertragen.</li><li>ROLEPLAY dort öffnen und die Sicherung importieren.</li></ol>
+        <h3>Lokale Daten entfernen</h3><p>Die Löschung betrifft nur ROLEPLAY auf diesem Gerät. Bereits exportierte Dateien bleiben erhalten.</p><button id="deleteLocalData" class="danger-button" type="button">Alle lokalen ROLEPLAY-Daten löschen</button>
+      </section>
+      <section data-settings-panel="help" hidden>
+        <h3>Ein kleiner Anfang reicht</h3><ol><li>Wähle eine Rolle, die heute Raum bekommen soll.</li><li>Trage Energie und Laune in einer Tagesphase ein.</li><li>Halte eine Aktivität fest und schau im Wochenrückblick auf die Verteilung.</li></ol>
+        <details open><summary>Was bedeuten Rollenmodus und Punkte?</summary><p>Der Rollenmodus ist ein Vorschlag für Umfang und Tempo. Ohne Gottesfurcht fließen Laune mit 58 % und Energie mit 42 % ein. Mit erfasstem Gottesfurchtwert gilt die Gewichtung 36 % Laune, 32 % Energie und 32 % Gottesfurcht. Niedrige Energie oder Laune begrenzen höhere Modi.</p><p>Das ist eine von ROLEPLAY festgelegte Orientierung, keine medizinische Beurteilung. Du entscheidest, welcher Schritt heute passt.</p><p>Präsenzpunkte entstehen durch Aktivitäten. Eigene Aktivitäten zählen standardmäßig einen Punkt. Vorlagen können andere Werte haben; der genaue Wert steht bei der Auswahl und in der Rollenaufschlüsselung. Ein leerer Tag ist keine Bewertung deiner Person.</p></details>
+        <details><summary>Auf dem iPhone installieren</summary><p>Öffne ROLEPLAY in Safari, tippe auf „Teilen“ und wähle „Zum Home-Bildschirm“. Öffne die App einmal mit Internetverbindung, damit ihre Dateien für die Offline-Nutzung gespeichert werden können.</p></details>
+        <details><summary>Offline und Updates</summary><p>Einträge bleiben auf dem Gerät. Sobald eine neue Version bereitsteht, erscheint ein Hinweis. Speichere offene Eingaben und aktiviere das Update. Ein Backup ist besonders vor einem Wechsel der App-Adresse wichtig.</p></details>
+        <p><a href="privacy.html" target="_blank" rel="noopener">Datenschutz in der Testversion</a></p>
+        <h3>Rückmeldung zur Testversion</h3><label>Was ist passiert und was hast du erwartet?<textarea id="feedbackText" rows="4" maxlength="4000" placeholder="Bitte keine vertraulichen Tagebucheinträge einfügen."></textarea></label><button id="saveFeedback" type="button" class="secondary-button">Fehlerbericht als Datei speichern</button><p class="settings-hint">Die Datei wird nicht automatisch versendet. Gib sie an die Person weiter, von der du diese Testversion erhalten hast.</p><p id="settingsVersion" class="settings-hint"></p>
+      </section>
+      <p id="settingsError" class="form-error" role="alert"></p><button id="settingsSave" type="submit" class="primary-button settings-save">Änderungen speichern</button>
+    </form>
+  </dialog>
+
+  <script src="storage.js"></script>
+  <script src="app.js"></script>
+  <script src="product.js"></script>
+</body>
+</html>
